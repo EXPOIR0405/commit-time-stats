@@ -1,0 +1,39 @@
+name: Update commit time stats
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 자정에 실행
+  workflow_dispatch: # 수동 실행도 가능하게
+  push:  # push할 때마다 실행되도록 추가
+
+jobs:
+  update-stats:
+    runs-on: ubuntu-latest
+    permissions:  # 권한 명시적 추가
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyGithub
+          
+      - name: Update stats
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          python update_stats.py
+          
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || git commit -m "📊 커밋 통계 자동 업데이트"
+          git push 
