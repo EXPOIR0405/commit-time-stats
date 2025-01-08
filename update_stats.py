@@ -57,20 +57,21 @@ def main():
         contents = repo.get_contents("README.md")
         existing_content = contents.decoded_content.decode('utf-8')
         
-        # GitHub Stats 섹션 찾기
-        stats_section_marker = "## ✍️ GitHub Stats ✍️"
-        stats_index = existing_content.find(stats_section_marker)
-        
-        # 다음 섹션(Contact) 찾기
+        # GitHub Stats 섹션� Contact 섹션 찾기
+        stats_section = "## ✍️ GitHub Stats ✍️"
         contact_section = "## 📧 Contact 📧"
+        commit_time_section = "## ⏰ 시간대별 커밋 분석"
+        
+        stats_index = existing_content.find(stats_section)
         contact_index = existing_content.find(contact_section)
         
-        if stats_index == -1 or contact_index == -1:
-            print("필요한 섹션을 찾을 수 없습니다.")
-            return
-        
-        # GitHub Stats 섹션의 끝 부분 찾기 (Contact 섹션 직전)
-        insert_position = contact_index
+        # 기존의 커밋 시간 분석 섹션 제거
+        old_time_stats_index = existing_content.find(commit_time_section)
+        if old_time_stats_index != -1:
+            # 다음 섹션의 시작점 찾기
+            next_section_index = existing_content.find("##", old_time_stats_index + 1)
+            if next_section_index != -1:
+                existing_content = existing_content[:old_time_stats_index] + existing_content[next_section_index:]
         
         # 새로운 통계 섹션 생성
         commit_stats_section = '\n## ⏰ 시간대별 커밋 분석\n\n'
@@ -93,13 +94,13 @@ def main():
         
         commit_stats_section += '```\n'
         commit_stats_section += f'\n마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
-        commit_stats_section += "---\n\n"  # 구분선 추가
+        commit_stats_section += "---\n\n"
         
-        # 새로운 README 내용 조합
+        # Contact 섹션 직전에 새로운 섹션 삽입
         new_content = (
-            existing_content[:insert_position] + 
+            existing_content[:contact_index] + 
             commit_stats_section + 
-            existing_content[insert_position:]
+            existing_content[contact_index:]
         )
 
         # README.md 업데이트
