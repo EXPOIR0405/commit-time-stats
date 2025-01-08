@@ -53,10 +53,18 @@ def main():
 
         print(f"총 {total_commits}개의 커밋 분석됨")
 
-        # README.md 내용 생성
-        readme_content = '# 📊 나의 GitHub 활동 통계\n\n'
-        readme_content += '## ⏰ 시간대별 커밋 분석\n\n'
-        readme_content += '```text\n'
+        # 기존 README.md 읽기
+        contents = repo.get_contents("README.md")
+        existing_content = contents.decoded_content.decode('utf-8')
+        
+        # 연락처 부분 찾기
+        contact_index = existing_content.find("## 📞 Contact")
+        if contact_index == -1:
+            contact_index = len(existing_content)  # 연락처 섹션이 없으면 파일 끝에 추가
+        
+        # 새로운 통계 섹션 생성
+        stats_section = '\n## ⏰ 시간대별 커밋 분석\n\n'
+        stats_section += '```text\n'
         
         max_commits = max(period_commits.values()) if period_commits else 1
         
@@ -71,28 +79,22 @@ def main():
             bar_length = int((count / max_commits) * 20)
             bar = '█' * bar_length + '⋅' * (20 - bar_length)
             
-            readme_content += f'{i} {emoji} {period:<8} {count:3d} commits {bar} {percentage:4.1f}%\n'
+            stats_section += f'{i} {emoji} {period:<8} {count:3d} commits {bar} {percentage:4.1f}%\n'
         
-        readme_content += '```\n\n'
-        readme_content += f'총 분석된 커밋 수: {total_commits}\n'
-        readme_content += f'\n마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n'
+        stats_section += '```\n'
+        stats_section += f'\n마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+        
+        # 새로운 README 내용 조합
+        new_content = existing_content[:contact_index] + stats_section + existing_content[contact_index:]
 
-        try:
-            contents = repo.get_contents("README.md")
-            repo.update_file(
-                path="README.md",
-                message="📊 커밋 통계 자동 업데이트",
-                content=readme_content,
-                sha=contents.sha
-            )
-            print("README.md 파일 업데이트 완료!")
-        except Exception as e:
-            repo.create_file(
-                path="README.md",
-                message="📊 커밋 통계 초기 생성",
-                content=readme_content
-            )
-            print("README.md 파일 생성 완료!")
+        # README.md 업데이트
+        repo.update_file(
+            path="README.md",
+            message="📊 커밋 통계 자동 업데이트",
+            content=new_content,
+            sha=contents.sha
+        )
+        print("README.md 파일 업데이트 완료!")
 
     except Exception as e:
         print(f"에러 발생: {str(e)}")
