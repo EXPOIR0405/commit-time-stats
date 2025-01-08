@@ -57,10 +57,13 @@ def main():
         contents = repo.get_contents("README.md")
         existing_content = contents.decoded_content.decode('utf-8')
         
-        # 연락처 부분 찾기
-        contact_index = existing_content.find("## 📞 Contact")
+        # Contact 섹션 찾기
+        contact_section = "## 📧 Contact 📧"
+        contact_index = existing_content.find(contact_section)
+        
         if contact_index == -1:
-            contact_index = len(existing_content)  # 연락처 섹션이 없으면 파일 끝에 추가
+            print("Contact 섹션을 찾을 수 없습니다.")
+            return
         
         # 새로운 통계 섹션 생성
         stats_section = '\n## ⏰ 시간대별 커밋 분석\n\n'
@@ -83,9 +86,14 @@ def main():
         
         stats_section += '```\n'
         stats_section += f'\n마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n'
+        stats_section += "---\n\n"  # 구분선 추가
         
         # 새로운 README 내용 조합
-        new_content = existing_content[:contact_index] + stats_section + existing_content[contact_index:]
+        new_content = (
+            existing_content[:contact_index] + 
+            stats_section + 
+            existing_content[contact_index:]
+        )
 
         # README.md 업데이트
         repo.update_file(
