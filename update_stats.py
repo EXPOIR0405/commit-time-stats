@@ -18,9 +18,9 @@ def get_time_period(hour):
 def main():
     try:
         # 토큰 확인
-        token = os.getenv('GH_TOKEN')
+        token = os.getenv('GT_TOKEN')
         if not token:
-            print("Error: GH_TOKEN not found in environment variables")
+            print("Error: GT_TOKEN not found in environment variables")
             sys.exit(1)
 
         print("GitHub 연결 시도 중...")
