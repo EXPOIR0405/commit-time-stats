@@ -26,8 +26,9 @@ def main():
         g = Github(token)
         user = g.get_user()
         
-        # TimeTable 저장소 가져오기
-        repo = g.get_repo(f"{user.login}/TimeTable")  # TimeTable 저장소 지정
+        # 정확한 저장소 이름으로 수정
+        repo = g.get_repo("EXPOIR0405/commit-time-stats")
+        print(f"저장소 연결됨: {repo.name}")
         
         # 시간대별 커밋 수 저장
         period_commits = {
