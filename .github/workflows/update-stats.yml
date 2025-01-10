@@ -26,7 +26,7 @@ jobs:
           
       - name: Update stats
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.COMMIT_TIME_STAT }}
         run: |
           python -X dev update_stats.py
           
