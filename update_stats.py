@@ -3,7 +3,6 @@ from collections import defaultdict
 from datetime import datetime
 import os
 import sys
-import traceback
 
 def get_time_period(hour):
     if 6 <= hour < 12:
@@ -19,84 +18,89 @@ def main():
     try:
         token = os.getenv('GT_TOKEN')
         if not token:
-            print("Error: GT_TOKEN not found in environment variables")
+            print("Error: GT_TOKEN not found")
             sys.exit(1)
 
-        print("GitHub 연결 시도 중...")
         g = Github(token)
         user = g.get_user()
         
-        # 정확한 저장소 이름으로 수정
-        repo = g.get_repo("EXPOIR0405/commit-time-stats")
-        print(f"저장소 연결됨: {repo.name}")
-        
-        # 시간대별 커밋 수 저장
-        period_commits = {
-            "Morning": 0,
-            "Daytime": 0,
-            "Evening": 0,
-            "Night": 0
-        }
+        # 커밋 통계 수집
+        period_commits = defaultdict(int)
         total_commits = 0
-
-        print("커밋 분석 시작...")
-        for user_repo in user.get_repos():
+        
+        for repo in user.get_repos():
             try:
-                print(f"저장소 분석 중: {user_repo.name}")
-                commits = user_repo.get_commits(author=user.login)
+                commits = repo.get_commits(author=user.login)
                 for commit in commits:
-                    hour = commit.commit.author.date.hour
-                    period, _ = get_time_period(hour)
+                    commit_time = commit.commit.author.date
+                    period = get_time_period(commit_time.hour)[0]  # [0]으로 period만 가져오기
                     period_commits[period] += 1
                     total_commits += 1
-            except Exception as e:
-                print(f"저장소 {user_repo.name} 처리 중 에러: {str(e)}")
+            except:
                 continue
 
-        print(f"총 {total_commits}개의 커밋 분석됨")
-
-        # README.md 내용 생성 (시간대별 커밋 분석만)
-        readme_content = '## ⏰ 시간대별 커밋 분석\n\n'
-        readme_content += '```text\n'
-        
+        # max_commits 계산을 여기서 수행
         max_commits = max(period_commits.values()) if period_commits else 1
-        
-        for i, (period, emoji) in enumerate([
-            ("Morning", "🌞"),
-            ("Daytime", "🏢"),
-            ("Evening", "🌆"),
-            ("Night", "🌙")
-        ], 1):
-            count = period_commits[period]
-            percentage = (count / total_commits * 100) if total_commits > 0 else 0
-            bar_length = int((count / max_commits) * 20)
-            bar = '█' * bar_length + '⋅' * (20 - bar_length)
-            
-            readme_content += f'{i} {emoji} {period:<8} {count:3d} commits {bar} {percentage:4.1f}%\n'
-        
-        readme_content += '```\n\n'
-        readme_content += f'마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n'
 
         try:
-            # TimeTable의 README.md 파일 생성 또는 업데이트
-            try:
-                contents = repo.get_contents("README.md")
-                repo.update_file(
+            profile_repo = g.get_repo(f"{user.login}/{user.login}")
+            contents = profile_repo.get_contents("README.md")
+            current_content = contents.decoded_content.decode('utf-8')
+            
+            # hits 배지 찾기
+            hits_marker = "hits&edge_flat=false"
+            hits_index = current_content.find(hits_marker)
+            
+            if hits_index != -1:
+                # hits 배지 끝나는 부분 찾기
+                insert_position = current_content.find("</p>", hits_index) + 4
+                
+                # 기존 통계 섹션 제거 (있다면)
+                old_stats_start = current_content.find("## ⏰ 시간대별 커밋 분석")
+                if old_stats_start != -1:
+                    old_stats_end = current_content.find("---", old_stats_start) + 4 if current_content.find("---", old_stats_start) != -1 else len(current_content)
+                    current_content = current_content[:old_stats_start] + current_content[old_stats_end:]
+                
+                # 통계 섹션 생성
+                stats_section = '\n## ⏰ 시간대별 커밋 분석\n\n'
+                stats_section += '```text\n'
+                
+                for period, emoji in [
+                    ("Morning", "🌞"),
+                    ("Daytime", "🏢"),
+                    ("Evening", "🌆"),
+                    ("Night", "🌙")
+                ]:
+                    count = period_commits[period]
+                    percentage = (count / total_commits * 100) if total_commits > 0 else 0
+                    bar_length = int((count / max_commits) * 20)
+                    bar = '█' * bar_length + '⋅' * (20 - bar_length)
+                    
+                    stats_section += f'{emoji} {period:<8} {count:3d} commits {bar} {percentage:4.1f}%\n'
+                
+                stats_section += '```\n\n'
+                stats_section += f'마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n---\n\n'
+                
+                # 새로운 내용 조합
+                new_content = (
+                    current_content[:insert_position] + 
+                    '\n' + stats_section + 
+                    current_content[insert_position:]
+                )
+                
+                # README.md 업데이트
+                profile_repo.update_file(
                     path="README.md",
                     message="📊 커밋 통계 자동 업데이트",
-                    content=readme_content,
+                    content=new_content,
                     sha=contents.sha
                 )
-            except:
-                repo.create_file(
-                    path="README.md",
-                    message="📊 커밋 통계 초기 생성",
-                    content=readme_content
-                )
-            print("README.md 파일 업데이트 완료!")
-
+                print("프로필 README.md 업데이트 완료!")
+            else:
+                print("hits 배지를 찾을 수 없습니다.")
+                
         except Exception as e:
-            print(f"README.md 업데이트 중 에러: {str(e)}")
+            print(f"에러 발생: {str(e)}")
             sys.exit(1)
 
     except Exception as e:
