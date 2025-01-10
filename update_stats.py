@@ -1,6 +1,6 @@
 from github import Github
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 import sys
 
@@ -79,7 +79,12 @@ def main():
                     stats_section += f'{emoji} {period:<8} {count:3d} commits {bar} {percentage:4.1f}%\n'
                 
                 stats_section += '```\n\n'
-                stats_section += f'마지막 업데이트: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n\n---\n\n'
+                
+                # 한국 시간으로 변환
+                kst = timezone(timedelta(hours=9))
+                current_time = datetime.now(kst)
+                
+                stats_section += f'마지막 업데이트: {current_time.strftime("%Y-%m-%d %H:%M:%S")} (KST)\n\n---\n\n'
                 
                 # 새로운 내용 조합
                 new_content = (
