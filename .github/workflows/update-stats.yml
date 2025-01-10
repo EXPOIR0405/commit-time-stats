@@ -3,13 +3,13 @@ name: Update commit time stats
 on:
   schedule:
     - cron: '0 0 * * *'  # 매일 자정에 실행
-  workflow_dispatch: # 수동 실행도 가능하게
-  push:  # push할 때마다 실행되도록 추가
+  workflow_dispatch:
+  push:
 
 jobs:
   update-stats:
     runs-on: ubuntu-latest
-    permissions:  # 권한 명시적 추가
+    permissions:
       contents: write
     steps:
       - uses: actions/checkout@v2
@@ -28,7 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          python update_stats.py
+          python -X dev update_stats.py
           
       - name: Commit changes
         run: |

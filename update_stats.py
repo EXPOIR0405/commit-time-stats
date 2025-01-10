@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 import os
 import sys
+import traceback
 
 def get_time_period(hour):
     if 6 <= hour < 12:
@@ -15,17 +16,25 @@ def get_time_period(hour):
         return "Night", "🌙"
 
 def main():
-    token = os.getenv('GH_TOKEN')
-    if not token:
-        print("Error: GH_TOKEN not found")
-        sys.exit(1)
-
-    print("GitHub 연결 시도 중...")
-    g = Github(token)
-
     try:
-        user = g.get_user()
-        print(f"사용자 {user.login} 으로 연결됨")
+        # 토큰 확인
+        token = os.getenv('GH_TOKEN')
+        if not token:
+            print("Error: GH_TOKEN not found in environment variables")
+            sys.exit(1)
+
+        print("GitHub 연결 시도 중...")
+        g = Github(token)
+
+        try:
+            # 연결 테스트
+            user = g.get_user()
+            print(f"인증된 사용자: {user.login}")
+        except Exception as e:
+            print(f"GitHub 인증 실패: {str(e)}")
+            traceback.print_exc()
+            sys.exit(1)
+
         repo = g.get_repo(f"{user.login}/EXPOIR0405")
         
         # 시간대별 커밋 수 저장
@@ -113,7 +122,9 @@ def main():
         print("README.md 파일 업데이트 완료!")
 
     except Exception as e:
-        print(f"에러 발생: {str(e)}")
+        print(f"예상치 못한 에러 발생: {str(e)}")
+        print("상세 에러 정보:")
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
